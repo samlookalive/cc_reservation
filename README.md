@@ -1,17 +1,16 @@
-# Python program for booking SRT ticket.
+# Python program for booking cc 세종
 
-
-매진된 SRT 표의 예매를 도와주는 파이썬 프로그램입니다.  
-원하는 표가 나올 때 까지 새로고침하여 예약을 시도합니다.
+매진된 cc세종의 예매를 도와주는 파이썬 프로그램입니다.  
+원하는 시간이 나올 때 까지 새로고침하여 예약을 시도합니다.
 
 
 ## 다운
 ```cmd
-git clone https://github.com/kminito/srt_reservation.git
+git clone https://github.com/samlookalive/cc_reservation.git
 ```
   
 ## 필요
-- 파이썬 3.7, 3.9에서 테스트 했습니다.
+- 파이썬 3.9에서 테스트 했습니다.
 
 ```py
 pip install -r requirements.txt
