@@ -8,9 +8,15 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
-from selenium.common.exceptions import ElementClickInterceptedException, StaleElementReferenceException, WebDriverException
-from srt_reservation.exceptions import InvalidStationNameError, InvalidDateError, InvalidDateFormatError, InvalidTimeFormatError
-from srt_reservation.validation import station_list
+from selenium.common.exceptions import ElementClickInterceptedException, StaleElementReferenceException, WebDriverException, NoSuchElementException
+#from cc_reservation.exceptions import InvalidStationNameError, InvalidDateError, InvalidDateFormatError, InvalidTimeFormatError
+#from cc_reservation.validation import station_list
+from exceptions import InvalidStationNameError, InvalidDateError, InvalidDateFormatError, InvalidTimeFormatError
+from validation import station_list
+# for alert 처리
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.alert import Alert
 
 chromedriver_path = r'C:\workspace\chromedriver.exe'
 
@@ -61,6 +67,8 @@ class SRT:
         try:
             self.driver = webdriver.Chrome(executable_path=chromedriver_path)
         except WebDriverException:
+            import os
+            os.environ['WDM_SSL_VERIFY'] = '0'
             self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
     def login(self):
@@ -71,15 +79,18 @@ class SRT:
         self.driver.find_element(By.CLASS_NAME, 'bt_login').click()
         self.driver.implicitly_wait(5)
         time.sleep(1)
+        Alert(self.driver).accept()
+        '''
         try:
-              result = self.driver.switch_to_alert()
+              WebDriverWait(self.driver, 3).until(EC.alert_is_present())
+              result = self.driver.switch_to_alert
               print(result.text)
-              result.accept()
               result.dismiss()
+              result.accept()
               return self.driver
         except:
-              print("테스트")
-
+              print("no alert")
+        '''
     def check_login(self):
         menu_text = self.driver.find_element(By.CSS_SELECTOR, "#wrap > div.header.header-e > div.global.clear > div").text
         if "환영합니다" in menu_text:
@@ -140,22 +151,27 @@ class SRT:
 
     def check_result(self):
         while True:
-            for i in range(1, self.num_trains_to_check+1):
+            #for i in range(1, self.num_trains_to_check+1):
+            self.is_booked = True
+            reservtime = []
+            for i in range(1, 50):
                 try:
-                    standard_seat = self.driver.find_element(By.XPATH, '//*[@id="tab0"]/table/tbody/tr[1]/td[3]').text
-                    print(standard_seat)
-                    reservation = self.driver.find_element(By.XPATH, '//*[@id="tab0"]/table/tbody/tr[2]/td[3]').text
-                    print(reservation)
-                except StaleElementReferenceException:
-                    standard_seat = "매진"
-                    reservation = "매진"
+                    #standard_seat = self.driver.find_element(By.CSS_SELECTOR, '//*[@id="tab0"]/table/tbody/tr[1]/td[3]').text
+                    rvtime = self.driver.find_element(By.XPATH, f'//*[@id="tab0"]/table/tbody/tr[{i}]/td[3]').text.split(':')
+                    reservtime.append(rvtime[0])
+                except NoSuchElementException:
+                    print("검색된 길이 : ", len(reservtime))
+                    print(reservtime)
+                    break
 
+                '''
                 if self.book_ticket(standard_seat, i):
                     return self.driver
 
-                if self.want_reserve:
+                if self.want_reserve: 
                     self.reserve_ticket(reservation, i)
-
+                '''
+            
             if self.is_booked:
                 return self.driver
 
