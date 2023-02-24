@@ -134,6 +134,31 @@ class SRT:
                 self.driver.back()  # 뒤로가기
                 self.driver.implicitly_wait(5)
 
+    def book_firsttime(self, revtime, revlen):
+        # reservtime 에는 i개의 예약가능 시간
+        # print("예약 클릭")
+        # Error handling in case that click does not work
+        if revtime[0] != 0:
+            try:
+                self.driver.find_element(By.XPATH, f'//*[@id="timeresbtn_{revtime[0]}_{revtime[1]}{revtime[2]}"]').click()
+                self.driver.implicitly_wait(20)
+                captcha = self.driver.find_element(By.XPATH, '//*[@id="golfdataform"]/table[3]/tbody/tr[1]/td').text
+                input = self.driver.find_element(By.NAME, "certNoChk")
+                input.clear()
+                input.send_keys(str(captcha))
+                self.driver.implicitly_wait(10)
+                time.sleep(5)
+            except NoSuchElementException:
+                print("Element 찾지 못함")
+            except ElementClickInterceptedException as err:
+                print(err)
+                self.driver.implicitly_wait(3)
+            finally:
+                self.driver.implicitly_wait(3)
+            # TODO : 예약 성공 확인 부분 만들어야됨
+            self.is_booked = True
+            print("예약성공")
+        
     def refresh_result(self):
         self.driver.find_element(By.XPATH, '//*[@id="calendar_view_ajax_2"]/table/tbody/tr[3]/td[2]/a').click()
         self.cnt_refresh += 1
@@ -141,36 +166,33 @@ class SRT:
         self.driver.implicitly_wait(10)
         time.sleep(0.5)
 
-    def reserve_ticket(self, reservation, i):
-        if "신청하기" in reservation:
-            print("예약 대기 완료")
-            self.driver.find_element(By.CSS_SELECTOR,
-                                     f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({i}) > td:nth-child(8) > a").click()
-            self.is_booked = True
-            return self.is_booked
-
     def check_result(self):
         while True:
             #for i in range(1, self.num_trains_to_check+1):
-            self.is_booked = True
-            reservtime = []
+            #self.is_booked = True
+            reservtime = [0, 0, 0]
             for i in range(1, 50):
                 try:
                     #standard_seat = self.driver.find_element(By.CSS_SELECTOR, '//*[@id="tab0"]/table/tbody/tr[1]/td[3]').text
-                    rvtime = self.driver.find_element(By.XPATH, f'//*[@id="tab0"]/table/tbody/tr[{i}]/td[3]').text.split(':')
-                    reservtime.append(rvtime[0])
+                    rvtime = self.driver.find_element(By.XPATH, f'//*[@id="tab0"]/table/tbody/tr[{i}]/td[3]').text.split(':', 2)
+                    csname = self.driver.find_element(By.XPATH, f'//*[@id="tab0"]/table/tbody/tr[{i}]/td[2]').text
+                    if 8 <= int(rvtime[0]) <= 9 :
+                        if csname == "세종" :
+                            csnum = 1
+                        elif csname == "행복" :
+                            csnum = 2
+                        else :
+                            csnum = 0
+                        reservtime[0] = (csnum)
+                        reservtime[1] = (rvtime[0])
+                        reservtime[2] = (rvtime[1])
+                        break
                 except NoSuchElementException:
-                    print("검색된 길이 : ", len(reservtime))
-                    print(reservtime)
+                    #print("예약 가능 리스트 없음")
                     break
 
-                '''
-                if self.book_ticket(standard_seat, i):
-                    return self.driver
-
-                if self.want_reserve: 
-                    self.reserve_ticket(reservation, i)
-                '''
+            if self.book_firsttime(reservtime, i):
+                return self.driver
             
             if self.is_booked:
                 return self.driver
