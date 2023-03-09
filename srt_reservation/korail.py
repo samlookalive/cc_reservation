@@ -8,7 +8,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
-from selenium.common.exceptions import ElementClickInterceptedException, StaleElementReferenceException, WebDriverException
+from selenium.common.exceptions import ElementClickInterceptedException, StaleElementReferenceException, WebDriverException, NoSuchElementException
+from selenium.webdriver.common.alert import Alert
 import os
 os.environ['WDM_SSL_VERIFY'] = '0'
 #from srt_reservation.exceptions import InvalidStationNameError, InvalidDateError, InvalidDateFormatError, InvalidTimeFormatError
@@ -121,23 +122,24 @@ class KORAIL:
     def book_ticket(self, standard_seat, i):
         # standard_seat는 일반석 검색 결과 텍스트
 
-        if "예약하기" in standard_seat:
+        if not "매진" in standard_seat:
             print("예약 가능 클릭")
 
             # Error handling in case that click does not work
             try:
-                self.driver.find_element(By.CSS_SELECTOR,
-                                         f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({i}) > td:nth-child(7) > a").click()
+                self.driver.find_element(By.XPATH, f'//*[@id="tableResult"]/tbody/tr[{i}]/td[6]/a[1]/img').click()
             except ElementClickInterceptedException as err:
                 print(err)
-                self.driver.find_element(By.CSS_SELECTOR,
-                                         f"#result-form > fieldset > div.tbl_wrap.th_thead > table > tbody > tr:nth-child({i}) > td:nth-child(7) > a").send_keys(
-                    Keys.ENTER)
+                self.driver.find_element(By.XPATH, f'//*[@id="tableResult"]/tbody/tr[{i}]/td[6]/a[1]/img').send_keys(Keys.ENTER)
+                #self.driver.find_element(By.CSS_SELECTOR, f"#tableResult > tbody > tr:nth-child({i}) > td:nth-child(6) > a:nth-child(1) > img").send_keys(Keys.ENTER)
             finally:
                 self.driver.implicitly_wait(3)
 
             # 예약이 성공하면
-            if self.driver.find_elements(By.ID, 'isFalseGotoMain'):
+            da = Alert(self.driver)
+            da.accept()
+            da.dismiss()
+            if self.driver.find_elements(By.XPATH, '//*[@id="btn_next"]'):
                 self.is_booked = True
                 print("예약 성공")
                 return self.driver
@@ -145,10 +147,12 @@ class KORAIL:
                 print("잔여석 없음. 다시 검색")
                 self.driver.back()  # 뒤로가기
                 self.driver.implicitly_wait(5)
+            
+
 
     def refresh_result(self):
-        submit = self.driver.find_element(By.XPATH, "//input[@value='조회하기']")
-        self.driver.execute_script("arguments[0].click();", submit)
+        self.driver.find_element(By.XPATH, '/html/body/div[1]/div[3]/div/div[1]/form[1]/div/div[3]/p').click()
+        #self.driver.execute_script("arguments[0].click();", submit)
         self.cnt_refresh += 1
         print(f"새로고침 {self.cnt_refresh}회")
         self.driver.implicitly_wait(10)
@@ -163,15 +167,18 @@ class KORAIL:
             return self.is_booked
     def check_result(self):
         while True:
-            for i in range(4, 4+1):
+            for i in range(1, 1+1):
                 num = (i*2) - 1
                 try:
                     standard_seat = self.driver.find_element(By.CSS_SELECTOR, f"#tableResult > tbody > tr:nth-child({num}) > td:nth-child(6)").text
                     reservation = self.driver.find_element(By.CSS_SELECTOR, f"#tableResult > tbody > tr:nth-child({num}) > td:nth-child(7)").text
+                except NoSuchElementException:
+                    standard_seat = "매진2"
+                    reservation = "매진2"
                 except StaleElementReferenceException:
                     standard_seat = "매진"
                     reservation = "매진"
-                print(standard_seat)
+
                 if self.book_ticket(standard_seat, i):
                     return self.driver
 
@@ -198,6 +205,6 @@ if __name__ == "__main__":
     #korail_id = os.environ.get('0960037025')
     #korail_psw = os.environ.get('ghkrhr2ehd!')
 
-    korail = KORAIL("조치원", "영등포", "2023", "3", "17", '17')
+    korail = KORAIL("조치원", "영등포", "2023", "3", "10", '18')
     korail.run('0960037025', 'ghkrhr2ehd!')
 
