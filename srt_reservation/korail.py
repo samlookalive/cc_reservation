@@ -207,4 +207,5 @@ if __name__ == "__main__":
 
     korail = KORAIL("조치원", "영등포", "2023", "3", "10", '18')
     korail.run('0960037025', 'ghkrhr2ehd!')
+    // 삭제 테스트
 
